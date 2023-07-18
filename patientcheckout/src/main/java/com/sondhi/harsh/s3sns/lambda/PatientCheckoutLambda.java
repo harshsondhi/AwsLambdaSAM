@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PatientCheckoutLambda {
 
@@ -35,23 +37,30 @@ public class PatientCheckoutLambda {
     //s3 notification
     public void checkoutLambdaHandler(S3Event event,Context context){
 
+       // LambdaLogger lambdaLogger = context.getLogger();
+       Logger logger = LoggerFactory.getLogger(PatientCheckoutLambda.class);
+
         event.getRecords().forEach( record -> {
                       S3ObjectInputStream s3ObjectInputStream = s3.getObject(record.getS3().getBucket().getName(),
                               record.getS3().getObject().getKey()).getObjectContent();
 
                   try {
+                      logger.info("Read data from S3");
                       List<PatentCheckoutEvent> patientCheckoutEvents = Arrays
                               .asList(objectMapper.readValue(s3ObjectInputStream, PatentCheckoutEvent[].class));
-                      System.out.println(patientCheckoutEvents);
+                      logger.info(patientCheckoutEvents.toString());
                       s3ObjectInputStream.close();
-
+                      logger.info("Message being published to sns");
                       publishMessageToSNS(patientCheckoutEvents);
 
                   }catch (JsonParseException e) {
                       e.printStackTrace();
                   } catch (JsonMappingException e) {
-                      //logger.error("Exception is:", e);
-                      throw new RuntimeException("Error while processing S3 event",e);
+//                      StringWriter stringWriter = new StringWriter();
+//                      e.printStackTrace(new PrintWriter(stringWriter));
+//                      lambdaLogger.log(stringWriter.toString());
+                      logger.error("Exception is :", e);
+                      throw new RuntimeException("Error while processing S3 event:= ", e);
                   } catch (IOException e) {
                       e.printStackTrace();
                   }

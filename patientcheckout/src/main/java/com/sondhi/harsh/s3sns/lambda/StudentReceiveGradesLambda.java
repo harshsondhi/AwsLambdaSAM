@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.sondhi.harsh.s3sns.event.StudentGradeEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StudentReceiveGradesLambda {
     private static final String STUDENT_RESULT_TOPIC = System.getenv("STUDENT_RESULT_TOPIC");
@@ -32,23 +34,25 @@ public class StudentReceiveGradesLambda {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void studentGradeLambdaHandler(S3Event event,Context context){
+        Logger logger = LoggerFactory.getLogger(StudentReceiveGradesLambda.class);
 
         event.getRecords().forEach( record -> {
             S3ObjectInputStream s3ObjectInputStream = s3.getObject(record.getS3().getBucket().getName(),
                     record.getS3().getObject().getKey()).getObjectContent();
 
             try {
+                logger.info("Started reading data");
                 List<StudentGradeEvent> studentGradeEvents = Arrays
                         .asList(objectMapper.readValue(s3ObjectInputStream, StudentGradeEvent[].class));
-                System.out.println(studentGradeEvents);
+                logger.info(studentGradeEvents.toString());
                 s3ObjectInputStream.close();
-
+                logger.info("Pushing event to SNS");
                 publishMessageToSNS(studentGradeEvents);
 
             }catch (JsonParseException e) {
                 e.printStackTrace();
             } catch (JsonMappingException e) {
-                //logger.error("Exception is:", e);
+                logger.error("Exception is:", e);
                 throw new RuntimeException("Error while processing S3 event",e);
             } catch (IOException e) {
                 e.printStackTrace();

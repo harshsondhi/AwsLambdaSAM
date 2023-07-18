@@ -10,6 +10,10 @@ Globals:
     Timeout: 20
     MemorySize: 128
 Resources:
+  PatientCheckoutDLQ:
+    Type: AWS::SNS::Topic
+  StudentResultDLQ:
+    Type: AWS::SNS::Topic
   PatientCheckoutBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -33,6 +37,10 @@ Resources:
       Architectures:
       - x86_64
       MemorySize: 512
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn:
+          Ref: PatientCheckoutDLQ
       Policies:
       - S3ReadPolicy:
           BucketName:
@@ -65,6 +73,10 @@ Resources:
       Architectures:
       - x86_64
       MemorySize: 512
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn:
+          Ref: StudentResultDLQ
       Policies:
       - S3ReadPolicy:
           BucketName:
@@ -122,3 +134,37 @@ Resources:
               Ref: StudentGradeTopic
     Metadata:
       SamResourceId: ResultPublishingFunction
+  ErrorHandlingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ErrorHandlingFunction
+      Handler: com.sondhi.harsh.s3sns.errorhandling.ErrorHandler::deadletterSNSHandler
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: PatientCheckoutDLQ
+    Metadata:
+      SamResourceId: ErrorHandlingFunction
+  StudentErrorHandlingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: StudentErrorHandlingFunction
+      Handler: com.sondhi.harsh.s3sns.errorhandling.StudentsErrorHandler::studentDeadletterSNSHandler
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic:
+              Ref: StudentResultDLQ
+    Metadata:
+      SamResourceId: StudentErrorHandlingFunction

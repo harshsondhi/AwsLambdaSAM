@@ -12,6 +12,10 @@ Globals:
     MemorySize: 128
 
 Resources:
+  PatientCheckoutDLQ:
+    Type: AWS::SNS::Topic
+  StudentResultDLQ:
+    Type: AWS::SNS::Topic  
   PatientCheckoutBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -36,6 +40,9 @@ Resources:
       Architectures:
       - x86_64
       MemorySize: 512
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn: !Ref PatientCheckoutDLQ
       Policies:
       - S3ReadPolicy:
           BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
@@ -61,6 +68,9 @@ Resources:
       Architectures:
       - x86_64
       MemorySize: 512
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn: !Ref StudentResultDLQ
       Policies:
       - S3ReadPolicy:
           BucketName: !Sub studentgrade-${AWS::StackName}-${AWS::AccountId}-${AWS::Region}
@@ -107,6 +117,34 @@ Resources:
         SNSEvent:
           Type: SNS
           Properties:
-            Topic: !Ref StudentGradeTopic              
+            Topic: !Ref StudentGradeTopic       
+  ErrorHandlingFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: patientcheckout
+      Handler: com.sondhi.harsh.s3sns.errorhandling.ErrorHandler::deadletterSNSHandler
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref PatientCheckoutDLQ      
+  StudentErrorHandlingFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: patientcheckout
+      Handler: com.sondhi.harsh.s3sns.errorhandling.StudentsErrorHandler::studentDeadletterSNSHandler
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref StudentResultDLQ                              
 
   

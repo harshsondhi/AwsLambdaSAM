@@ -5,9 +5,9 @@ codeuri = "C:\\Users\\harsh\\Udemy\\lambdasha\\lambdaharsh\\patientcheckout\\pat
 runtime = "java11"
 architecture = "x86_64"
 handler = "com.sondhi.harsh.s3sns.lambda.PatientCheckoutLambda::checkoutLambdaHandler"
-source_hash = "674888ef05af4a8390cc6f5af2ccc683e35f1a1dd66ed2e62fb99b156d8255f6"
+source_hash = "fb715092ac1b8890b804dcbaf6e7b99b64d42efdc74e97e6fd84b6181bf99f7c"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["PatientCheckoutFunction", "StudentGradeFunction", "BillManagementFunction", "ResultPublishingFunction"]
+functions = ["PatientCheckoutFunction", "StudentGradeFunction", "BillManagementFunction", "ResultPublishingFunction", "ErrorHandlingFunction", "StudentErrorHandlingFunction"]
 
 [layer_build_definitions]
